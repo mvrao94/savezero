@@ -41,10 +41,11 @@ git clone https://github.com/mvrao94/savezero.git
 cd savezero
 ```
 
-### 2. Install Dependencies
+### 2. Optional Manual Installation
 ```bash
-pip install .
+python -m pip install .
 ```
+The launchers can also create a project-local `.venv` and install missing dependencies automatically.
 
 ### 3. Optional Configuration
 Command-line arguments are sufficient for normal package usage; no `.env` file is required:
@@ -74,6 +75,7 @@ CLEANER_MODE=api
 .\run.bat --username your_instagram_username
 ```
 You can also run `run.bat` without arguments when `INSTAGRAM_USERNAME` is set in `.env`; otherwise it prompts for the username.
+When `--mode` is omitted, the launcher uses the fast in-browser API mode by default. Add `--mode ui` to use visual browser clicks instead.
 
 **On Linux / macOS:**
 ```bash
@@ -81,6 +83,7 @@ chmod +x run.sh
 ./run.sh --username your_instagram_username
 ```
 You can also run `./run.sh` without arguments when `INSTAGRAM_USERNAME` is set in `.env`; otherwise it prompts for the username.
+The launcher prefers a local `.venv`, creates one when possible, and installs missing dependencies. When using WSL or Git Bash on Windows without `python3-venv`, it can use a dependency-ready `python.exe` installation.
 
 **Direct Python CLI:**
 ```bash
@@ -108,12 +111,17 @@ usage examples:
   run.bat --username your_instagram_username
   ./run.sh --username your_instagram_username
   savezero --username your_instagram_username
+  savezero --username your_instagram_username --mode ui
 
 options:
   -h, --help            Show this help message and exit
   -u, --username USER   Instagram username to clear saved posts for
   -m, --mode {api,ui}   Clearing mode: 'api' (fast ~1.5s/post) or 'ui' (visual clicks)
   --url URL             Direct custom URL for a specific saved collection
+
+If `--mode` is omitted, API mode is selected by default. API mode is the fast mode; use `--mode ui` only when visual browser interaction is needed.
+
+The `run.bat` and `run.sh` launchers automatically create a project environment and install missing dependencies. Direct Python execution requires the project to be installed first.
 ```
 
 ---

@@ -2,9 +2,9 @@
 SaveZero - Automated Saved Collection Cleanser
 ==============================================
 
-A robust, self-healing Python automation tool designed to programmatically traverse
-and unsave thousands of posts from an Instagram saved collection without triggering
-action blocks, bot detection, or browser crashes.
+A self-healing Python automation tool designed to programmatically traverse and unsave
+large Instagram saved collections while pacing requests and detecting common browser
+or action-block failures. It cannot guarantee that Instagram will not restrict an account.
 
 Architecture:
     1. Dynamic Selector Resolution:
@@ -23,7 +23,7 @@ Architecture:
        renderer crashes, relaunching Chrome and seamlessly resuming without losing progress.
 
 Usage:
-    # Direct execution using .env configuration:
+    # Direct execution after installing the package dependencies:
     python cleaner.py
 
     # Override options via CLI:
@@ -1023,7 +1023,9 @@ def main() -> None:
             "  savezero --username your_instagram_username\n"
             "\n"
             "If --username is omitted, INSTAGRAM_USERNAME is read from .env; "
-            "otherwise SaveZero prompts for it."
+            "otherwise SaveZero prompts for it.\n"
+            "The run.bat and run.sh launchers create a project environment and install "
+            "missing dependencies automatically."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
