@@ -1,39 +1,71 @@
-# SaveZero 🚀
+# SaveZero
+
+### Bulk-delete your Instagram saved posts in minutes.
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Selenium](https://img.shields.io/badge/Selenium-4.15+-green.svg)](https://www.selenium.dev/)
 
-**SaveZero** is a self-healing Python automation tool designed to help manage large Instagram saved collections while pacing requests and stopping when common action-block signals are detected. It cannot guarantee that Instagram will not restrict an account.
+---
+
+## The Problem
+
+Have **thousands of saved Instagram posts** you'll never look at again?
+
+Instagram gives you no good way to bulk-delete them. You'd have to click "Unsave" thousands of times manually.
+
+## The Solution
+
+**SaveZero** automates the cleanup locally through your Chrome session. It works with your existing login, automatically resumes after crashes, and **never asks for your Instagram password**.
+
+### Why SaveZero?
+
+- ✅ **Actually fast**: Clear 2,000+ saved posts without clicking Unsave thousands of times
+- ✅ **Completely local**: Runs on your machine using your Chrome profile
+- ✅ **Zero credentials stored**: You log in once through Chrome, SaveZero reuses that session
+- ✅ **Self-healing**: Automatically recovers from browser crashes or connection drops
+- ✅ **Built-in safety**: Paces requests and stops when common action-block signals are detected
+
+> **Important**: SaveZero is designed to pace requests and halt on known action-block signals, but this **does not guarantee** that Instagram won't restrict an account. Use at your own discretion.
 
 ---
 
-## ✨ Features
+## Demo
 
-- ⚡ **Dual Execution Modes**:
-  - **Fast In-Browser API Mode (Default)**: Executes asynchronous unsave calls directly via your authenticated browser session (`~1.5s per post`, clearing **~2,000+ posts/hour** without UI rendering lags).
-  - **Visual UI Mode**: Traverses the grid, inspects modal states, and simulates organic mouse clicks.
-- 🛡️ **Tiered Milestone Cooldowns**:
-  - Micro-breathers (randomized 30s to 60s every 40 posts) to reduce request bursts.
-  - **15-minute rest every 1,000 posts** to cool down hourly activity.
-  - **1-hour rest every 2,000 posts** to reset multi-hour account action limits.
-- 🔄 **Self-Healing Session Recovery**:
-  - Automatically handles dropped Chrome DevTools connections, system sleep, or browser crashes by cleanly reattaching and resuming from where it left off.
-- 🎯 **Dynamic Selector Resolution**:
-  - Decoupled from fragile, obfuscated CSS classes (e.g. `._aagw`); relies on relative XPaths, semantic ARIA labels, and mathematical Base64 media-ID decoding.
-- 🔒 **Zero Credentials Stored**:
-  - Never asks for your Instagram password. Authentication is performed directly by you inside a local, dedicated Chrome profile (`~/.savezero_session`).
+<!-- TODO: Add 15-30 second GIF showing:
+     - Instagram → 2,847 saved posts
+     - SaveZero running
+     - Automatic cleanup
+     - 0 saved posts
+     - Terminal output
+-->
+
+_Demo GIF coming soon!_
 
 ---
 
-## 📋 Prerequisites
+## How It Works
 
-- **Python 3.8+** installed.
-- **Google Chrome** installed.
+**SaveZero** offers two modes:
+
+1. **Fast In-Browser API Mode (Default)**: Direct asynchronous fetch calls from your authenticated browser session — clears posts with minimal overhead
+2. **Visual UI Mode**: Full browser automation with DOM traversal and simulated clicks
+
+Both modes include:
+- **Tiered cooldowns**: Micro-breathers every 40 posts, 15-min rest every 1,000 posts, 1-hour rest every 2,000 posts
+- **Self-healing recovery**: Handles dropped Chrome connections, system sleep, or renderer crashes
+- **Dynamic selector resolution**: Works around Instagram's obfuscated CSS classes using relative XPaths and ARIA attributes
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
+
+### Prerequisites
+
+- **Python 3.8+** installed
+- **Google Chrome** installed
+
+### Installation
 
 ### 1. Clone the Repository
 ```bash
@@ -68,7 +100,7 @@ INSTAGRAM_USERNAME=your_instagram_username
 CLEANER_MODE=api
 ```
 
-### 4. Run the Script
+### 3. Run SaveZero
 
 **On Windows:**
 ```powershell
@@ -98,7 +130,9 @@ savezero --url "https://www.instagram.com/your_username/saved/all-posts/"
 
 ---
 
-## 🛠️ CLI Options
+## Configuration
+
+### CLI Options
 
 The supported command-line options override corresponding `.env` defaults directly:
 
@@ -126,9 +160,9 @@ If `--mode` is omitted, API mode is selected by default. API mode is the fast mo
 The `run.bat` and `run.sh` launchers automatically create a project environment and install missing dependencies. Direct Python execution requires the project to be installed first.
 ```
 
----
+### Environment Variables (`.env`)
 
-## ⚙️ Environment Variables (`.env`)
+For persistent configuration, copy `.env.example` to `.env` and customize:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
@@ -146,7 +180,7 @@ The `run.bat` and `run.sh` launchers automatically create a project environment 
 
 ---
 
-## 🔐 How Authentication Works
+## How Authentication Works
 
 1. On the first run, the script opens a dedicated Google Chrome automation window and pauses at an **Authentication Gate**.
 2. Log into your Instagram account and complete 2FA in that browser window.
@@ -155,19 +189,74 @@ The `run.bat` and `run.sh` launchers automatically create a project environment 
 
 ---
 
-## 🛡️ Rate-Limiting & Safety Recommendations
+## Safety & Rate Limiting
 
-- **Private Action Safety**: Unsaving posts is a private action on your own library and does not trigger public spam flags.
-- **Velocity Management**: Instagram enforces hourly action velocity limits. The built-in milestone pauses are pacing measures, not a guarantee that temporary action blocks will be avoided.
-- **Auto-Halt Protection**: API mode halts on a `429` response or an API response containing `"checkpoint_required"`. Both modes also scan for a set of known action-block indicators, but detection is not comprehensive.
+**Important considerations:**
+
+- **Private action**: Unsaving posts is a private action on your own library and does not trigger public spam flags
+- **Velocity limits**: Instagram enforces hourly action velocity limits; SaveZero's built-in pauses help pace requests
+- **Auto-halt protection**: API mode stops on `429` responses or `"checkpoint_required"` signals; both modes scan for known action-block indicators
+- **Not foolproof**: Detection is not comprehensive — use at your own discretion
+
+**SaveZero is designed to pace requests and stop when common action-block signals are detected. This does not guarantee that Instagram won't restrict an account.**
 
 ---
 
-## 📄 License
+## Technical Architecture
+
+<details>
+<summary>Click to expand technical details</summary>
+
+### Dynamic Selector Resolution
+Bypasses fragile, obfuscated CSS classes by utilizing relative XPaths, semantic ARIA attributes, and self-healing selector priority caching.
+
+### Dual Execution Engines
+- **In-Browser API Mode (Default)**: Direct asynchronous fetch calls from the active authenticated browser session (~1.5s/post, ~2,000+ posts/hour).
+- **Visual UI Mode**: Full DOM traversal, modal lifecycle validation, and simulated clicks.
+
+### Tiered Milestone Throttling
+- Micro-breathers: Randomized 30s to 60s pauses every 40 posts.
+- Hourly rest: 15-minute cooldown every 1,000 posts.
+- Multi-hour rest: 1-hour cooldown every 2,000 posts.
+
+### Self-Healing Browser Recovery
+Automatically catches dropped DevTools connections, system sleep interruptions, or renderer crashes, relaunching Chrome and seamlessly resuming without losing progress.
+
+</details>
+
+---
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## Roadmap
+
+- [ ] Add comprehensive test suite
+- [ ] Create demo GIF/video
+- [ ] PyPI package distribution
+- [ ] Support for multiple Instagram accounts
+- [ ] Progress export/import for long-running sessions
+- [ ] Collection-specific clearing (not just "All Posts")
+
+---
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for security policy and vulnerability reporting.
+
+---
+
+## License
 
 This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-## ⚠️ Legal & Trademark Disclaimer
-SaveZero is an independent open-source project and is not affiliated with, sponsored by, or endorsed by Meta Platforms, Inc. or Instagram. "Instagram", "Insta", and "Meta" are registered trademarks of Meta Platforms, Inc. This tool is intended for personal data management and fair-use collection hygiene. Use responsibly in accordance with platform terms.
+## Legal & Trademark Disclaimer
+
+SaveZero is an independent open-source project and is not affiliated with, sponsored by, or endorsed by Meta Platforms, Inc. or Instagram. "Instagram", "Insta", and "Meta" are registered trademarks of Meta Platforms, Inc.
+
+**This tool is intended for personal data management and fair-use collection hygiene. Use responsibly in accordance with Instagram's Terms of Service.**
