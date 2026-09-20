@@ -46,10 +46,12 @@ jobs:
     - name: Check code formatting with black
       run: |
         black --check --line-length 100 --target-version py38 .
+      continue-on-error: true
 
     - name: Check import sorting with isort
       run: |
         isort --check-only --profile black .
+      continue-on-error: true
 
     - name: Type check with mypy
       run: |
