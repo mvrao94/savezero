@@ -46,7 +46,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 Instead, please email security concerns to:
 
-**venki_bobby1994@yahoo.com**
+**venkateswararaom07@gmail.com**
 
 Include in your report:
 
