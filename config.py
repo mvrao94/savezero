@@ -134,6 +134,50 @@ class ScraperConfig:
     MODAL_TIMEOUT: int = _get_env_int("MODAL_TIMEOUT", 10)
     ELEMENT_TIMEOUT: int = _get_env_int("ELEMENT_TIMEOUT", 6)
 
+    def __post_init__(self) -> None:
+        """Validate runtime settings before a browser session is started."""
+        self.MODE = self.MODE.lower()
+        if self.MODE not in {"api", "ui"}:
+            raise ValueError("CLEANER_MODE must be either 'api' or 'ui'.")
+
+        nonnegative_values = {
+            "API_MIN_DELAY": self.API_MIN_DELAY,
+            "API_MAX_DELAY": self.API_MAX_DELAY,
+            "MIN_ACTION_DELAY": self.MIN_ACTION_DELAY,
+            "MAX_ACTION_DELAY": self.MAX_ACTION_DELAY,
+            "MICRO_DELAY_MIN": self.MICRO_DELAY_MIN,
+            "MICRO_DELAY_MAX": self.MICRO_DELAY_MAX,
+            "BATCH_PAUSE_MIN": self.BATCH_PAUSE_MIN,
+            "BATCH_PAUSE_MAX": self.BATCH_PAUSE_MAX,
+            "PAUSE_EVERY_1000_SEC": self.PAUSE_EVERY_1000_SEC,
+            "PAUSE_EVERY_2000_SEC": self.PAUSE_EVERY_2000_SEC,
+        }
+        invalid_nonnegative = [name for name, value in nonnegative_values.items() if value < 0]
+        if invalid_nonnegative:
+            raise ValueError(f"Configuration values cannot be negative: {', '.join(invalid_nonnegative)}.")
+
+        positive_values = {
+            "BATCH_SIZE_BEFORE_PAUSE": self.BATCH_SIZE_BEFORE_PAUSE,
+            "MAX_POST_RETRIES": self.MAX_POST_RETRIES,
+            "MAX_IDLE_SCROLLS": self.MAX_IDLE_SCROLLS,
+            "SCROLL_PIXELS": self.SCROLL_PIXELS,
+            "MODAL_TIMEOUT": self.MODAL_TIMEOUT,
+            "ELEMENT_TIMEOUT": self.ELEMENT_TIMEOUT,
+        }
+        invalid_positive = [name for name, value in positive_values.items() if value <= 0]
+        if invalid_positive:
+            raise ValueError(f"Configuration values must be greater than zero: {', '.join(invalid_positive)}.")
+
+        ranges = (
+            ("API_MIN_DELAY", self.API_MIN_DELAY, "API_MAX_DELAY", self.API_MAX_DELAY),
+            ("MIN_ACTION_DELAY", self.MIN_ACTION_DELAY, "MAX_ACTION_DELAY", self.MAX_ACTION_DELAY),
+            ("MICRO_DELAY_MIN", self.MICRO_DELAY_MIN, "MICRO_DELAY_MAX", self.MICRO_DELAY_MAX),
+            ("BATCH_PAUSE_MIN", self.BATCH_PAUSE_MIN, "BATCH_PAUSE_MAX", self.BATCH_PAUSE_MAX),
+        )
+        for lower_name, lower_value, upper_name, upper_value in ranges:
+            if lower_value > upper_value:
+                raise ValueError(f"{lower_name} cannot be greater than {upper_name}.")
+
 
 # =============================================================================
 # Cascading DOM Selectors
@@ -170,8 +214,6 @@ BOOKMARK_REMOVE_SELECTORS: List[Tuple[str, str]] = [
     (By.XPATH, "//div[@role='dialog']//*[@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved']/ancestor-or-self::*[@role='button' or self::button]"),
     # 3. Direct SVG with matching aria-label
     (By.XPATH, "//div[@role='dialog']//*[local-name()='svg' and (@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved')]"),
-    # 4. Action bar position heuristic: bookmark button is typically the last button in the action section
-    (By.XPATH, "//div[@role='dialog']//section//div[contains(@class, '')]//button[last()]"),
 ]
 
 # Verification selector to confirm the post transitioned to unsaved ("Save") state

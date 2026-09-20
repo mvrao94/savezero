@@ -193,6 +193,7 @@ class SaveZeroCleanser:
         self.driver: Optional[webdriver.Chrome] = None
         self.selector_engine: SelectorEngine = SelectorEngine()
         self.processed_shortcodes: Set[str] = set()
+        self.attempt_counts: Dict[str, int] = {}
         self.cleared_count: int = 0
         self.skipped_count: int = 0
         self.failed_count: int = 0
@@ -533,7 +534,9 @@ class SaveZeroCleanser:
             )
             self.cleared_count += 1
         except TimeoutException:
-            self.cleared_count += 1
+            logger.warning(f"Bookmark state did not confirm unsaved for {post_url}.")
+            self.close_modal()
+            return False
 
         self.close_modal()
         return True
@@ -753,14 +756,17 @@ class SaveZeroCleanser:
                     idle_scroll_count = 0
 
                     for elem, href, shortcode in candidates:
-                        self.processed_shortcodes.add(shortcode)
+                        attempt = self.attempt_counts.get(shortcode, 0) + 1
+                        self.attempt_counts[shortcode] = attempt
                         try:
                             media_id = self.shortcode_to_media_id(shortcode)
                         except Exception:
                             media_id = None
 
                         if not media_id:
-                            logger.warning(f"Could not calculate media ID for {shortcode}. Skipping.")
+                            logger.warning(f"Could not calculate media ID for {shortcode}. Marking as failed.")
+                            self.failed_count += 1
+                            self.processed_shortcodes.add(shortcode)
                             continue
 
                         logger.info(f"[{self.cleared_count + 1}] Fast Unsave -> {shortcode} (Media ID: {media_id})")
@@ -769,14 +775,27 @@ class SaveZeroCleanser:
 
                         if status_code == 200:
                             self.cleared_count += 1
+                            self.processed_shortcodes.add(shortcode)
+                            self.attempt_counts.pop(shortcode, None)
                         elif status_code == 400 and "checkpoint_required" in str(resp):
                             raise ActionBlockedException("Instagram checkpoint challenge required.")
                         elif status_code == 429:
                             raise ActionBlockedException("Rate limit 429 received from Instagram.")
-                        else:
-                            # Non-fatal response (post may already be unsaved or deleted)
-                            logger.debug(f"API response for {shortcode}: {resp}")
+                        elif status_code in (400, 404):
+                            logger.info(f"Post {shortcode} was already unsaved or is unavailable. Skipping.")
                             self.skipped_count += 1
+                            self.processed_shortcodes.add(shortcode)
+                            self.attempt_counts.pop(shortcode, None)
+                        else:
+                            logger.warning(
+                                f"Unsave failed for {shortcode} with status {status_code} "
+                                f"(attempt {attempt}/{self.config.MAX_POST_RETRIES})."
+                            )
+                            logger.debug(f"API response for {shortcode}: {resp}")
+                            if attempt >= self.config.MAX_POST_RETRIES:
+                                self.failed_count += 1
+                                self.processed_shortcodes.add(shortcode)
+                                self.attempt_counts.pop(shortcode, None)
 
                         reconnect_attempts = 0
 
@@ -887,7 +906,6 @@ class SaveZeroCleanser:
                     idle_scroll_count = 0
 
                     for elem, href, shortcode in candidates:
-                        self.processed_shortcodes.add(shortcode)
                         logger.info(f"[{self.cleared_count + 1}] Processing post: {href}")
 
                         retries = 0
@@ -918,7 +936,10 @@ class SaveZeroCleanser:
 
                         if not success:
                             self.failed_count += 1
+                            self.processed_shortcodes.add(shortcode)
                             logger.error(f"Failed to clear post {shortcode} after {retries} retries. Continuing.")
+                        else:
+                            self.processed_shortcodes.add(shortcode)
 
                         reconnect_attempts = 0
                         self.action_cooldown()
@@ -990,12 +1011,21 @@ class SaveZeroCleanser:
             self.driver = None
 
 
-# -----------------------------------------------------------------------------
-# CLI Entrypoint
-# -----------------------------------------------------------------------------
-if __name__ == "__main__":
+def main() -> None:
+    """Parse command-line options and launch the cleanser."""
     parser = argparse.ArgumentParser(
-        description="SaveZero - Programmatically traverse and unsave thousands of Instagram saved posts."
+        description="SaveZero - Programmatically traverse and unsave thousands of Instagram saved posts.",
+        epilog=(
+            "Examples:\n"
+            "  python cleaner.py --username your_instagram_username\n"
+            "  run.bat --username your_instagram_username\n"
+            "  ./run.sh --username your_instagram_username\n"
+            "  savezero --username your_instagram_username\n"
+            "\n"
+            "If --username is omitted, INSTAGRAM_USERNAME is read from .env; "
+            "otherwise SaveZero prompts for it."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "-u", "--username",
@@ -1026,7 +1056,7 @@ if __name__ == "__main__":
         config.TARGET_SAVED_URL = args.url
 
     # Interactive prompt if username is unspecified
-    if config.INSTAGRAM_USERNAME in ("your_username", "", None) and not args.url:
+    if config.INSTAGRAM_USERNAME in ("your_username", "your_username_here", "", None) and not args.url:
         print("\n" + "=" * 60)
         print(" SAVEZERO - INSTAGRAM SAVED POSTS CLEANSER")
         print("=" * 60)
@@ -1041,3 +1071,10 @@ if __name__ == "__main__":
     # Launch cleanser
     cleanser = SaveZeroCleanser(config=config)
     cleanser.run()
+
+
+# -----------------------------------------------------------------------------
+# CLI Entrypoint
+# -----------------------------------------------------------------------------
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "savezero"
+version = "0.1.0"
+description = "Clean an Instagram saved collection through an authenticated Chrome session."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+dependencies = [
+    "selenium>=4.15.0",
+    "webdriver-manager>=4.0.1",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+savezero = "cleaner:main"
+
+[tool.setuptools]
+py-modules = ["cleaner", "config"]

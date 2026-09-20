@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include run.bat
+include run.sh
+include .env.example

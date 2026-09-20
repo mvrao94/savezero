@@ -3,9 +3,8 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Selenium](https://img.shields.io/badge/Selenium-4.15+-green.svg)](https://www.selenium.dev/)
-[![Anti-Ban Safe](https://img.shields.io/badge/Anti--Ban-Protected-brightgreen.svg)]()
 
-**SaveZero** is a robust, self-healing Python automation tool designed to programmatically traverse and unsave thousands of posts from your saved collection on Instagram without triggering action blocks or account restrictions.
+**SaveZero** is a self-healing Python automation tool designed to help manage large Instagram saved collections while pacing requests and stopping when common action-block signals are detected. It cannot guarantee that Instagram will not restrict an account.
 
 ---
 
@@ -15,7 +14,7 @@
   - **Fast In-Browser API Mode (Default)**: Executes asynchronous unsave calls directly via your authenticated browser session (`~1.5s per post`, clearing **~2,000+ posts/hour** without UI rendering lags).
   - **Visual UI Mode**: Traverses the grid, inspects modal states, and simulates organic mouse clicks.
 - 🛡️ **Tiered Milestone Cooldowns**:
-  - Micro-breathers (randomized 30s to 60s every 40 posts) to prevent velocity spikes.
+  - Micro-breathers (randomized 30s to 60s every 40 posts) to reduce request bursts.
   - **15-minute rest every 1,000 posts** to cool down hourly activity.
   - **1-hour rest every 2,000 posts** to reset multi-hour account action limits.
 - 🔄 **Self-Healing Session Recovery**:
@@ -44,11 +43,16 @@ cd savezero
 
 ### 2. Install Dependencies
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
-### 3. Configure Your Account
-Copy the example environment file:
+### 3. Optional Configuration
+Command-line arguments are sufficient for normal package usage; no `.env` file is required:
+```bash
+savezero --username your_instagram_username --mode api
+```
+
+To keep a username, mode, or runtime tuning values as defaults, copy the example environment file:
 ```bash
 # On Linux / macOS:
 cp .env.example .env
@@ -57,7 +61,7 @@ cp .env.example .env
 copy .env.example .env
 ```
 
-Open `.env` and set your username:
+Open `.env` and set any desired defaults:
 ```env
 INSTAGRAM_USERNAME=your_instagram_username
 CLEANER_MODE=api
@@ -67,29 +71,43 @@ CLEANER_MODE=api
 
 **On Windows:**
 ```powershell
-.\run.bat
+.\run.bat --username your_instagram_username
 ```
-*(or double-click `run.bat`)*
+You can also run `run.bat` without arguments when `INSTAGRAM_USERNAME` is set in `.env`; otherwise it prompts for the username.
 
 **On Linux / macOS:**
 ```bash
 chmod +x run.sh
-./run.sh
+./run.sh --username your_instagram_username
 ```
+You can also run `./run.sh` without arguments when `INSTAGRAM_USERNAME` is set in `.env`; otherwise it prompts for the username.
 
 **Direct Python CLI:**
 ```bash
 python cleaner.py --username your_instagram_username
 ```
 
+**Installed CLI:**
+```bash
+savezero --username your_instagram_username
+```
+
 ---
 
 ## 🛠️ CLI Options
 
-You can override `.env` settings directly from the command line:
+The supported command-line options override corresponding `.env` defaults directly:
 
 ```bash
 python cleaner.py --help
+# or, after pip install .:
+savezero --help
+
+usage examples:
+  python cleaner.py --username your_instagram_username
+  run.bat --username your_instagram_username
+  ./run.sh --username your_instagram_username
+  savezero --username your_instagram_username
 
 options:
   -h, --help            Show this help message and exit
@@ -104,9 +122,9 @@ options:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `INSTAGRAM_USERNAME` | *(Required)* | Your Instagram username (without `@`) |
+| `INSTAGRAM_USERNAME` | *(Optional)* | Default username; `--username` takes precedence |
 | `TARGET_SAVED_URL` | `https://www.instagram.com/{user}/saved/all-posts/` | Custom collection URL override |
-| `CLEANER_MODE` | `api` | `api` (fast background API) or `ui` (modal clicks) |
+| `CLEANER_MODE` | `api` | Default mode; `--mode` takes precedence |
 | `API_MIN_DELAY` | `1.2` | Minimum seconds between API unsaves |
 | `API_MAX_DELAY` | `2.0` | Maximum seconds between API unsaves |
 | `BATCH_SIZE_BEFORE_PAUSE` | `40` | Posts cleared before taking a quick micro-rest |
@@ -130,8 +148,8 @@ options:
 ## 🛡️ Rate-Limiting & Safety Recommendations
 
 - **Private Action Safety**: Unsaving posts is a private action on your own library and does not trigger public spam flags.
-- **Velocity Management**: Instagram enforces hourly action velocity limits. The built-in milestone pauses (15 min at 1,000 posts, 1 hr at 2,000 posts) are specifically engineered to stay below temporary action block thresholds.
-- **Auto-Halt Protection**: If Instagram ever returns a `429` (Rate Limited) or `"checkpoint_required"`, the script immediately halts execution to safeguard your account.
+- **Velocity Management**: Instagram enforces hourly action velocity limits. The built-in milestone pauses are pacing measures, not a guarantee that temporary action blocks will be avoided.
+- **Auto-Halt Protection**: API mode halts on a `429` response or an API response containing `"checkpoint_required"`. Both modes also scan for a set of known action-block indicators, but detection is not comprehensive.
 
 ---
 
