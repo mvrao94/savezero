@@ -18,6 +18,7 @@ or command-line arguments.
 import os
 from dataclasses import dataclass
 from typing import List, Tuple
+
 from dotenv import load_dotenv
 from selenium.webdriver.common.by import By
 
@@ -154,7 +155,9 @@ class ScraperConfig:
         }
         invalid_nonnegative = [name for name, value in nonnegative_values.items() if value < 0]
         if invalid_nonnegative:
-            raise ValueError(f"Configuration values cannot be negative: {', '.join(invalid_nonnegative)}.")
+            raise ValueError(
+                f"Configuration values cannot be negative: {', '.join(invalid_nonnegative)}."
+            )
 
         positive_values = {
             "BATCH_SIZE_BEFORE_PAUSE": self.BATCH_SIZE_BEFORE_PAUSE,
@@ -166,7 +169,9 @@ class ScraperConfig:
         }
         invalid_positive = [name for name, value in positive_values.items() if value <= 0]
         if invalid_positive:
-            raise ValueError(f"Configuration values must be greater than zero: {', '.join(invalid_positive)}.")
+            raise ValueError(
+                f"Configuration values must be greater than zero: {', '.join(invalid_positive)}."
+            )
 
         ranges = (
             ("API_MIN_DELAY", self.API_MIN_DELAY, "API_MAX_DELAY", self.API_MAX_DELAY),
@@ -209,17 +214,29 @@ MODAL_DIALOG_SELECTORS: List[Tuple[str, str]] = [
 # When currently UNSAVED : aria-label toggles to "Save"
 BOOKMARK_REMOVE_SELECTORS: List[Tuple[str, str]] = [
     # 1. Button containing an element with 'Remove', 'Unsave', or 'Saved' label
-    (By.XPATH, "//div[@role='dialog']//button[descendant::*[@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved']]"),
+    (
+        By.XPATH,
+        "//div[@role='dialog']//button[descendant::*[@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved']]",
+    ),
     # 2. Any interactive wrapper around the target label
-    (By.XPATH, "//div[@role='dialog']//*[@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved']/ancestor-or-self::*[@role='button' or self::button]"),
+    (
+        By.XPATH,
+        "//div[@role='dialog']//*[@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved']/ancestor-or-self::*[@role='button' or self::button]",
+    ),
     # 3. Direct SVG with matching aria-label
-    (By.XPATH, "//div[@role='dialog']//*[local-name()='svg' and (@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved')]"),
+    (
+        By.XPATH,
+        "//div[@role='dialog']//*[local-name()='svg' and (@aria-label='Remove' or @aria-label='Unsave' or @aria-label='Saved')]",
+    ),
 ]
 
 # Verification selector to confirm the post transitioned to unsaved ("Save") state
 BOOKMARK_ALREADY_UNSAVED_SELECTORS: List[Tuple[str, str]] = [
     (By.XPATH, "//div[@role='dialog']//button[descendant::*[@aria-label='Save']]"),
-    (By.XPATH, "//div[@role='dialog']//*[@aria-label='Save']/ancestor-or-self::*[@role='button' or self::button]"),
+    (
+        By.XPATH,
+        "//div[@role='dialog']//*[@aria-label='Save']/ancestor-or-self::*[@role='button' or self::button]",
+    ),
 ]
 
 # Modal close button fallback selectors (used if Keys.ESCAPE fails)

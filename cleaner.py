@@ -30,40 +30,40 @@ Usage:
     python cleaner.py --username your_username --mode api
 """
 
+import argparse
+import logging
 import os
+import random
 import sys
 import time
-import random
-import logging
-import argparse
-from typing import Optional, Set, List, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urlparse
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (
-    TimeoutException,
+    ElementClickInterceptedException,
     NoSuchElementException,
     StaleElementReferenceException,
-    ElementClickInterceptedException,
+    TimeoutException,
     WebDriverException,
 )
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 from config import (
-    ScraperConfig,
-    GRID_POST_SELECTORS,
-    MODAL_DIALOG_SELECTORS,
-    BOOKMARK_REMOVE_SELECTORS,
-    BOOKMARK_ALREADY_UNSAVED_SELECTORS,
-    MODAL_CLOSE_SELECTORS,
     ACTION_BLOCK_INDICATORS,
+    BOOKMARK_ALREADY_UNSAVED_SELECTORS,
+    BOOKMARK_REMOVE_SELECTORS,
+    GRID_POST_SELECTORS,
+    MODAL_CLOSE_SELECTORS,
+    MODAL_DIALOG_SELECTORS,
+    ScraperConfig,
 )
 
 # -----------------------------------------------------------------------------
@@ -82,6 +82,7 @@ logger = logging.getLogger("SaveZero")
 
 class ActionBlockedException(Exception):
     """Raised when Instagram serves an action block, rate-limit, or challenge dialog."""
+
     pass
 
 
@@ -134,9 +135,7 @@ class SelectorEngine:
 
         for by_type, selector_str in candidate_list:
             try:
-                element = wait.until(
-                    EC.presence_of_element_located((by_type, selector_str))
-                )
+                element = wait.until(EC.presence_of_element_located((by_type, selector_str)))
                 if element and element.is_displayed():
                     self.cached_selectors[category_name] = (by_type, selector_str)
                     return element
@@ -245,7 +244,9 @@ class SaveZeroCleanser:
         if use_user_profile and self.config.CHROME_USER_DATA_DIR:
             os.makedirs(self.config.CHROME_USER_DATA_DIR, exist_ok=True)
             logger.info(f"Using Chrome automation profile: {self.config.CHROME_USER_DATA_DIR}")
-            options = build_options(self.config.CHROME_USER_DATA_DIR, self.config.CHROME_PROFILE_NAME)
+            options = build_options(
+                self.config.CHROME_USER_DATA_DIR, self.config.CHROME_PROFILE_NAME
+            )
             self.driver = webdriver.Chrome(service=service, options=options)
         else:
             options = build_options(None, None)
@@ -254,13 +255,11 @@ class SaveZeroCleanser:
         # Remove navigator.webdriver attribute via Chrome DevTools Protocol (CDP)
         self.driver.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
-            {
-                "source": """
+            {"source": """
                     Object.defineProperty(navigator, 'webdriver', {
                         get: () => undefined
                     });
-                """
-            },
+                """},
         )
         return self.driver
 
@@ -303,7 +302,9 @@ class SaveZeroCleanser:
             rem_min = int(remaining // 60)
             rem_sec = int(remaining % 60)
             if remaining > 60:
-                logger.info(f"[{label}] Cooling down... {rem_min}m {rem_sec}s remaining until resume.")
+                logger.info(
+                    f"[{label}] Cooling down... {rem_min}m {rem_sec}s remaining until resume."
+                )
                 time.sleep(min(60, remaining))
             else:
                 logger.info(f"[{label}] Resuming in {int(remaining)}s...")
@@ -529,8 +530,12 @@ class SaveZeroCleanser:
         try:
             WebDriverWait(self.driver, 4).until(
                 lambda d: self.selector_engine.find_element(
-                    d, BOOKMARK_ALREADY_UNSAVED_SELECTORS, category_name="already_unsaved", timeout=1
-                ) is not None
+                    d,
+                    BOOKMARK_ALREADY_UNSAVED_SELECTORS,
+                    category_name="already_unsaved",
+                    timeout=1,
+                )
+                is not None
             )
             self.cleared_count += 1
         except TimeoutException:
@@ -581,9 +586,7 @@ class SaveZeroCleanser:
         Returns:
             List of tuples: (WebElement, full_href, shortcode).
         """
-        grid_elements = self.selector_engine.find_all_elements(
-            self.driver, GRID_POST_SELECTORS
-        )
+        grid_elements = self.selector_engine.find_all_elements(self.driver, GRID_POST_SELECTORS)
         unprocessed = []
         for elem in grid_elements:
             try:
@@ -634,7 +637,9 @@ class SaveZeroCleanser:
             logger.info("=" * 60)
             logger.warning("[AUTHENTICATION REQUIRED]")
             logger.warning("Instagram requires authentication.")
-            logger.warning("Please log into your account and complete 2FA in the opened Chrome window.")
+            logger.warning(
+                "Please log into your account and complete 2FA in the opened Chrome window."
+            )
             logger.warning("SaveZero will automatically detect your login and continue...")
             logger.info("=" * 60)
 
@@ -724,7 +729,9 @@ class SaveZeroCleanser:
         """
         idle_scroll_count = 0
         start_time = time.time()
-        logger.info("⚡ Fast In-Browser API Mode active: Unsaving at ~1.5s per post (no modal rendering lag).")
+        logger.info(
+            "⚡ Fast In-Browser API Mode active: Unsaving at ~1.5s per post (no modal rendering lag)."
+        )
 
         max_session_reconnects = 5
         reconnect_attempts = 0
@@ -743,12 +750,16 @@ class SaveZeroCleanser:
                         if idle_scroll_count in (2, 4):
                             # Auto-refresh: Since prior posts were unsaved in the database,
                             # reloading the page immediately brings the next batch of 24-36 items to top
-                            logger.info("Refreshing page to load freshly surfaced saved posts into view...")
+                            logger.info(
+                                "Refreshing page to load freshly surfaced saved posts into view..."
+                            )
                             self.driver.refresh()
                             self.jitter_sleep(4.0, 6.0, context="Post-refresh Hydration")
                             continue
                         elif idle_scroll_count >= self.config.MAX_IDLE_SCROLLS:
-                            logger.info("No more saved posts detected. Collection clearing complete!")
+                            logger.info(
+                                "No more saved posts detected. Collection clearing complete!"
+                            )
                             return
 
                         self.smooth_scroll_down()
@@ -765,12 +776,16 @@ class SaveZeroCleanser:
                             media_id = None
 
                         if not media_id:
-                            logger.warning(f"Could not calculate media ID for {shortcode}. Marking as failed.")
+                            logger.warning(
+                                f"Could not calculate media ID for {shortcode}. Marking as failed."
+                            )
                             self.failed_count += 1
                             self.processed_shortcodes.add(shortcode)
                             continue
 
-                        logger.info(f"[{self.cleared_count + 1}] Fast Unsave -> {shortcode} (Media ID: {media_id})")
+                        logger.info(
+                            f"[{self.cleared_count + 1}] Fast Unsave -> {shortcode} (Media ID: {media_id})"
+                        )
                         resp = self.api_unsave_media(media_id)
                         status_code = resp.get("status_code", 0)
 
@@ -783,7 +798,9 @@ class SaveZeroCleanser:
                         elif status_code == 429:
                             raise ActionBlockedException("Rate limit 429 received from Instagram.")
                         elif status_code in (400, 404):
-                            logger.info(f"Post {shortcode} was already unsaved or is unavailable. Skipping.")
+                            logger.info(
+                                f"Post {shortcode} was already unsaved or is unavailable. Skipping."
+                            )
                             self.skipped_count += 1
                             self.processed_shortcodes.add(shortcode)
                             self.attempt_counts.pop(shortcode, None)
@@ -813,7 +830,9 @@ class SaveZeroCleanser:
                 logger.info("Script manually interrupted by user (Ctrl+C). Cleaning up...")
                 break
             except ActionBlockedException as abe:
-                logger.critical(f"\n[CRITICAL WARNING] {abe}\nExecution halted to safeguard your account.")
+                logger.critical(
+                    f"\n[CRITICAL WARNING] {abe}\nExecution halted to safeguard your account."
+                )
                 break
             except (WebDriverException, Exception) as e:
                 err_str = str(e).lower()
@@ -893,12 +912,16 @@ class SaveZeroCleanser:
                             f"No new unvisited posts in viewport (attempt {idle_scroll_count}/{self.config.MAX_IDLE_SCROLLS})."
                         )
                         if idle_scroll_count in (2, 4):
-                            logger.info("Refreshing page to pull freshly surfaced saved posts into view...")
+                            logger.info(
+                                "Refreshing page to pull freshly surfaced saved posts into view..."
+                            )
                             self.driver.refresh()
                             self.jitter_sleep(4.0, 6.0, context="Post-refresh Hydration")
                             continue
                         elif idle_scroll_count >= self.config.MAX_IDLE_SCROLLS:
-                            logger.info("Max idle scrolls reached. No additional posts found in grid. Work complete!")
+                            logger.info(
+                                "Max idle scrolls reached. No additional posts found in grid. Work complete!"
+                            )
                             return
 
                         self.smooth_scroll_down()
@@ -917,7 +940,9 @@ class SaveZeroCleanser:
                                 self.safe_click(elem, description=f"Post thumbnail ({shortcode})")
                                 success = self.process_post_modal(href)
                             except StaleElementReferenceException:
-                                logger.warning(f"Stale element on thumbnail {shortcode}. Re-querying...")
+                                logger.warning(
+                                    f"Stale element on thumbnail {shortcode}. Re-querying..."
+                                )
                                 try:
                                     refreshed = self.driver.find_element(
                                         By.XPATH, f"//a[contains(@href, '{shortcode}')]"
@@ -938,7 +963,9 @@ class SaveZeroCleanser:
                         if not success:
                             self.failed_count += 1
                             self.processed_shortcodes.add(shortcode)
-                            logger.error(f"Failed to clear post {shortcode} after {retries} retries. Continuing.")
+                            logger.error(
+                                f"Failed to clear post {shortcode} after {retries} retries. Continuing."
+                            )
                         else:
                             self.processed_shortcodes.add(shortcode)
 
@@ -950,7 +977,9 @@ class SaveZeroCleanser:
                 logger.info("Script manually interrupted by user (Ctrl+C). Cleaning up...")
                 break
             except ActionBlockedException as abe:
-                logger.critical(f"\n[CRITICAL WARNING] {abe}\nExecution halted to safeguard your account.")
+                logger.critical(
+                    f"\n[CRITICAL WARNING] {abe}\nExecution halted to safeguard your account."
+                )
                 break
             except (WebDriverException, Exception) as e:
                 err_str = str(e).lower()
@@ -1032,20 +1061,17 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "-u", "--username",
-        type=str,
-        help="Instagram username to clear saved posts for."
+        "-u", "--username", type=str, help="Instagram username to clear saved posts for."
     )
     parser.add_argument(
-        "-m", "--mode",
+        "-m",
+        "--mode",
         type=str,
         choices=["api", "ui"],
-        help="Clearing engine mode: 'api' (fast in-browser API ~1.5s/post) or 'ui' (visual modal clicks)."
+        help="Clearing engine mode: 'api' (fast in-browser API ~1.5s/post) or 'ui' (visual modal clicks).",
     )
     parser.add_argument(
-        "--url",
-        type=str,
-        help="Direct custom URL for a specific saved collection."
+        "--url", type=str, help="Direct custom URL for a specific saved collection."
     )
     args = parser.parse_args()
 
@@ -1060,7 +1086,10 @@ def main() -> None:
         config.TARGET_SAVED_URL = args.url
 
     # Interactive prompt if username is unspecified
-    if config.INSTAGRAM_USERNAME in ("your_username", "your_username_here", "", None) and not args.url:
+    if (
+        config.INSTAGRAM_USERNAME in ("your_username", "your_username_here", "", None)
+        and not args.url
+    ):
         print("\n" + "=" * 60)
         print(" SAVEZERO - INSTAGRAM SAVED POSTS CLEANSER")
         print("=" * 60)
