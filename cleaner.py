@@ -568,8 +568,9 @@ class SaveZeroCleanser:
         """
         try:
             path_segments = [seg for seg in urlparse(href).path.split("/") if seg]
-            if len(path_segments) >= 2 and path_segments[0] in ("p", "reel"):
-                return path_segments[1]
+            for index, segment in enumerate(path_segments[:-1]):
+                if segment in ("p", "reel"):
+                    return path_segments[index + 1]
         except Exception:
             pass
         return href
@@ -1021,6 +1022,7 @@ def main() -> None:
             "  run.bat --username your_instagram_username\n"
             "  ./run.sh --username your_instagram_username\n"
             "  savezero --username your_instagram_username\n"
+            "  savezero --url https://www.instagram.com/your_username/saved/all-posts/\n"
             "\n"
             "If --username is omitted, INSTAGRAM_USERNAME is read from .env; "
             "otherwise SaveZero prompts for it.\n"

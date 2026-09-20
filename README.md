@@ -93,6 +93,7 @@ python cleaner.py --username your_instagram_username
 **Installed CLI:**
 ```bash
 savezero --username your_instagram_username
+savezero --url "https://www.instagram.com/your_username/saved/all-posts/"
 ```
 
 ---
@@ -111,6 +112,7 @@ usage examples:
   run.bat --username your_instagram_username
   ./run.sh --username your_instagram_username
   savezero --username your_instagram_username
+  savezero --url "https://www.instagram.com/your_username/saved/all-posts/"
   savezero --username your_instagram_username --mode ui
 
 options:
